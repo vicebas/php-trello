@@ -396,7 +396,7 @@ class Trello
                 break;
             case 'PUT':
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
-                curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($restData));
+                curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($restData, '', '&'));
                 break;
             case 'DELETE':
             case 'DEL':
