@@ -39,7 +39,7 @@ class Trello
     /**
      * php-trello version
      */
-    private $version = '1.0';
+    private $version = '1.0.1';
 
     /**
      * Trello API Version
@@ -385,7 +385,7 @@ class Trello
                 break;
             case 'PUT':
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $restData);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($restData));
                 break;
             case 'DELETE':
             case 'DEL':
