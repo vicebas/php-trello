@@ -373,9 +373,20 @@ class Trello
         curl_setopt($ch, CURLOPT_USERAGENT, "php-trello/$this->version");
         curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
 
+        // If we're using oauth, account for it
+        if ($this->canOauth()) {
+            $oauth = new OAuthSimple($this->consumer_key, $this->shared_secret);
+            $oauth->setTokensAndSecrets(array(
+                'access_token' => $this->token,
+                'access_secret' => $this->oauth_secret,
+            ));
+        }
+
         switch ($method) {
             case 'GET':
-                if (!empty($restData)) {
+                if (isset($oauth) && !empty($restData)) {
+                    $oauth->setParameters($restData);
+                } elseif (!empty($restData)) {
                     $url.= '?' . http_build_query($restData);
                 }
                 break;
@@ -390,7 +401,9 @@ class Trello
             case 'DELETE':
             case 'DEL':
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
-                if (!empty($restData)) {
+                if (isset($oauth) && !empty($restData)) {
+                    $oauth->setParameters($restData);
+                } elseif (!empty($restData)) {
                     $url.= '?' . http_build_query($restData);
                 }
                 break;
@@ -399,13 +412,7 @@ class Trello
                 break;
         }
 
-        // If we're using oauth, account for it
-        if ($this->canOauth()) {
-            $oauth = new OAuthSimple($this->consumer_key, $this->shared_secret);
-            $oauth->setTokensAndSecrets(array(
-                'access_token' => $this->token,
-                'access_secret' => $this->oauth_secret,
-            ));
+        if (isset($oauth)) {
             $request = $oauth->sign(array('path' => $url));
             $url = $request['signed_url'];
         }
