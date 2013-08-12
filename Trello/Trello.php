@@ -104,7 +104,7 @@ class Trello
         }
 
         // Sessions are used to for OAuth
-        if (session_id() == '') {
+        if (session_id() == '' && !headers_sent()) {
             session_start();
         }
 
@@ -214,10 +214,14 @@ class Trello
      * @param  array $userOptions [optional]
      * @return void
      */
-    public function authorize($userOptions = array())
+    public function authorize($userOptions = array(), $return = false)
     {
-        if ($this->authorized() || !$this->shared_secret) {
-            return;
+        if ($this->authorized()) {
+            return true;
+        }
+        
+        if (!$this->shared_secret) {
+            return false;
         }
 
         $oauth = new OAuthSimple($this->consumer_key, $this->shared_secret);
@@ -254,7 +258,7 @@ class Trello
             // access token.
             unset($_SESSION['oauth_token_secret']);
 
-            return;
+            return true;
         }
 
         $options = array_merge(array(
@@ -298,6 +302,10 @@ class Trello
             )
         ));
 
+        if ($return) {
+            return $request['signed_url'];
+        }
+        
         header("Location: $request[signed_url]");
         exit;
     }
@@ -483,6 +491,9 @@ class Trello
      * @return string
      */
     protected function callbackUri() {
+        if (empty($_SERVER['REQUEST_URI'])) {
+            return '';
+        }
         $port = $_SERVER['SERVER_PORT'] == '80' || $_SERVER['SERVER_PORT'] == '443' ? '' : ":$_SERVER[SERVER_PORT]";
         $protocol = 'http' . (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) != 'off' ? 's://' : '://');
         return "{$protocol}{$_SERVER['HTTP_HOST']}{$port}{$_SERVER['REQUEST_URI']}";
