@@ -87,6 +87,24 @@ class Trello
     protected $lastError;
 
     /**
+     * Types of collections used by Collection class
+     */
+    protected $collections = array(
+        'actions',
+        'boards',
+        'cards',
+        'checklists',
+        'lists',
+        'members',
+        'notifications',
+        'organizations',
+        'search',
+        'tokens',
+        'types',
+        'webhooks',
+    );
+
+    /**
      * __construct
      *
      * @param  string $consumer_key
@@ -339,7 +357,7 @@ class Trello
      */
     public function __get($collection)
     {
-        if (in_array($collection, array('actions', 'cards', 'checklists', 'boards', 'lists', 'members', 'organizations', 'lists'))) {
+        if (in_array($collection, $this->collections)) {
             return new Collection($collection, $this);
         }
 
