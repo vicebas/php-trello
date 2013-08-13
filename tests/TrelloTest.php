@@ -44,7 +44,11 @@ class TrelloTest extends \PHPUnit_Framework_TestCase {
             `xdg-open "$authorizeUrl" >/dev/null 2>&1 &`;
 
             echo "Waiting for authorization from Trello...\n";
-            $client = stream_socket_accept($server, 120);
+            $client = @stream_socket_accept($server, 120);
+            if (!$client) {
+                echo "Failed to receive Trello response.\n";
+                exit(1);
+            }
             $query = fgets($client, 1024);
 
             // Received a response, let's send back a message
@@ -60,7 +64,7 @@ class TrelloTest extends \PHPUnit_Framework_TestCase {
 
             // Lets parse the query and pull out the oauth stuff
             if (!preg_match('~GET (.*?) HTTP~', $query, $match)) {
-                echo "Could not read response from Trello\n";
+                echo "Could not read response from Trello.\n";
                 exit(1);
             }
 
