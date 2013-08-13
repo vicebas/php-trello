@@ -219,7 +219,7 @@ class Trello
         if ($this->authorized()) {
             return true;
         }
-        
+
         if (!$this->shared_secret) {
             return false;
         }
@@ -305,7 +305,7 @@ class Trello
         if ($return) {
             return $request['signed_url'];
         }
-        
+
         header("Location: $request[signed_url]");
         exit;
     }
@@ -537,14 +537,20 @@ class Collection
     }
 
     /**
-     * get
+     * __call
+     * Allows for more use of the collection class (issue #5)
      *
-     * @param  string $id
-     * @param  array $params [optional]
+     * @param string $method
+     * @param array $arguments
      * @return mixed array of stdClass objects or false on failure
      */
-    public function get($id, $params = array())
+    public function __call($method, $arguments)
     {
-        return $this->trello->get("$this->collection/$id", $params);
+        if (empty($arguments)) {
+            throw new \Exception('Missing path from method call.');
+        }
+        $path = array_shift($arguments);
+        array_unshift($arguments, "$this->collection/$path");
+        return call_user_func_array(array($this->trello, $method), $arguments);
     }
 }

@@ -94,4 +94,13 @@ class TrelloTest extends \PHPUnit_Framework_TestCase {
         $result = self::$trello->put("cards/$card/labels", array('value' => 'green,red'));
         $this->assertInternalType('object', $result, self::$trello->error());
     }
+
+    /**
+     * https://bitbucket.org/mattzuba/php-trello/issue/5/expand-collection-class
+     */
+    public function testIssue5() {
+        $card = '7uDI46kM';
+        $result = self::$trello->cards->put("$card/labels", array('value' => 'blue'));
+        $this->assertInternalType('object', $result, self::$trello->error());
+    }
 }
