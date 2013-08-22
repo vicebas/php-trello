@@ -39,7 +39,7 @@ class Trello
     /**
      * php-trello version
      */
-    private $version = '1.0.1';
+    private $version = '1.1.1';
 
     /**
      * Trello API Version
@@ -85,24 +85,6 @@ class Trello
      * Last error encountered by REST api
      */
     protected $lastError;
-
-    /**
-     * Types of collections used by Collection class
-     */
-    protected $collections = array(
-        'actions',
-        'boards',
-        'cards',
-        'checklists',
-        'lists',
-        'members',
-        'notifications',
-        'organizations',
-        'search',
-        'tokens',
-        'types',
-        'webhooks',
-    );
 
     /**
      * __construct
@@ -357,11 +339,7 @@ class Trello
      */
     public function __get($collection)
     {
-        if (in_array($collection, $this->collections)) {
-            return new Collection($collection, $this);
-        }
-
-        throw new \Exception("Collection $collection does not exist.");
+        return new Collection($collection, $this);
     }
 
     /**
@@ -543,6 +521,24 @@ class Collection
     protected $trello;
 
     /**
+     * Supported collections
+     */
+    protected $collections = array(
+        'actions',
+        'boards',
+        'cards',
+        'checklists',
+        'lists',
+        'members',
+        'notifications',
+        'organizations',
+        'search',
+        'tokens',
+        'types',
+        'webhooks',
+    );
+
+    /**
      * __construct
      *
      * @param string $collection
@@ -550,6 +546,10 @@ class Collection
      */
     public function __construct($collection, $trello)
     {
+        if (!in_array($collection, $this->collections)) {
+            throw new \Exception("Unsupported collection: {$collection}.");
+        }
+
         $this->collection = $collection;
         $this->trello = $trello;
     }
