@@ -4,82 +4,40 @@ use \Trello\Trello;
 
 class TrelloTest extends \PHPUnit_Framework_TestCase {
 
+    /**
+     * @var \Trello\Trello
+     */
     protected static $trello;
 
     public static function setUpBeforeClass() {
         global $keys;
 
-        self::$trello = new Trello($keys->key, $keys->secret, $keys->token, $keys->oauth_secret);
+        if (empty($keys->token)) {
+            $key = empty($keys->key) ? 'YOURKEY' : $keys->key;
+            fwrite(STDOUT, "Please visit https://trello.com/1/authorize?response_type=token&key=$key&scope=read,write,account&expiration=never&name=php-trello+Testing to obtain a token.\n");
+        }
+    }
 
-        if (self::$trello->authorized()) {
-            // Verify the token isn't expired
-            $me = self::$trello->members->get('me', array('fields' => ''));
-            if ($me === false) {
-                self::$trello->setToken('');
-                self::$trello->setOauthSecret('');
-            }
+    public function setUp() {
+        global $keys;
+
+        if (empty($keys->key) || empty($keys->token)) {
+            $this->markTestSkipped('Missing key or token in keys.json file');
         }
 
-        // Get an authorize URL (or true if we're already auth'd)
-        $authorizeUrl = self::$trello->authorize(array(
-            'scope' => array(
-                'read' => true,
-                'write' => true,
-                'account' => true,
-            ),
-            'redirect_uri' => 'http://127.0.0.1:23456',
-            'name' => 'php-trello PHPUnit Tests',
-            'expiration' => '1hour',
-        ), true);
+        self::$trello = new Trello($keys->key, null, $keys->token);
+    }
 
-        // Need to get authorized
-        if ($authorizeUrl !== true) {
-            $server = stream_socket_server('tcp://127.0.0.1:23456', $errno, $errmsg);
-            if (!$server) {
-                echo "Could not create a socket at 127.0.0.1:23456: $errmsg\n";
-                exit(1);
-            }
+    public function testBuildRequestUrl() {
+        $this->assertEquals('https://api.trello.com/1/boards?param=value',
+                             self::$trello->buildRequestUrl('GET', 'boards', array(
+                                 'param' => 'value'
+                             )));
 
-            // Fire off the browser
-            `xdg-open "$authorizeUrl" >/dev/null 2>&1 &`;
-
-            echo "Waiting for authorization from Trello...\n";
-            $client = @stream_socket_accept($server, 120);
-            if (!$client) {
-                echo "Failed to receive Trello response.\n";
-                exit(1);
-            }
-            $query = fgets($client, 1024);
-
-            // Received a response, let's send back a message
-            $msg = "Please close this browser window and return to the test to continue.";
-            fputs($client, "HTTP/1.1 200 OK\r\n");
-            fputs($client, "Connection: close\r\n");
-            fputs($client, "Content-Type: text/html; charset=UTF-8\r\n");
-            fputs($client, "Content-Length: " . strlen($msg) . "\r\n\r\n");
-            fputs($client, $msg);
-
-            // Wait to continue the test until the browser returns.
-            readline("Press [Enter] to continue...");
-
-            // Lets parse the query and pull out the oauth stuff
-            if (!preg_match('~GET (.*?) HTTP~', $query, $match)) {
-                echo "Could not read response from Trello.\n";
-                exit(1);
-            }
-
-            parse_str(parse_url($match[1], PHP_URL_QUERY), $_GET);
-
-            if (self::$trello->authorize(array(), true) !== true) {
-                echo "Did not receive proper authorization from Trello\n";
-                exit(1);
-            }
-
-            // Save what we got
-            $keys->token = self::$trello->token();
-            $keys->oauth_secret = self::$trello->oauthSecret();
-            file_put_contents('keys.json', json_encode($keys));
-        }
+        $this->assertEquals('https://api.trello.com/1/boards',
+                             self::$trello->buildRequestUrl('PUT', 'boards', array(
+                                 'param' => 'value'
+                             )));
     }
 
     /**
@@ -106,5 +64,68 @@ class TrelloTest extends \PHPUnit_Framework_TestCase {
         $card = '7uDI46kM';
         $result = self::$trello->cards->put("$card/labels", array('value' => 'blue'));
         $this->assertInternalType('object', $result, self::$trello->error());
+    }
+
+    public function testOauth() {
+        global $keys;
+        // We can only do oauth if secret is present
+        if (empty($keys->secret)) {
+            $this->markTestSkipped('testOauth: Missing oAuth secret');
+        }
+
+        // oAuth test messes with trello object, create a new one for testing here
+        $trello = new Trello($keys->key, $keys->secret);
+
+        // Get an authorize URL (or true if we're already auth'd)
+        $authorizeUrl = $trello->authorize(array(
+            'scope' => array(
+                'read' => true,
+                'write' => true,
+                'account' => true,
+            ),
+            'redirect_uri' => 'http://127.0.0.1:23456',
+            'name' => 'php-trello Testing',
+            'expiration' => '1hour',
+        ), true);
+
+        // Need to get authorized
+        if ($authorizeUrl !== true) {
+            $server = stream_socket_server('tcp://127.0.0.1:23456', $errno, $errmsg);
+            if (!$server) {
+                $this->markTestIncomplete("testOauth: Could not create a socket at 127.0.0.1:23456: $errmsg");
+            }
+
+            // Fire off the browser
+            `xdg-open "$authorizeUrl" >/dev/null 2>&1 &`;
+
+            //echo "Waiting for authorization from Trello...\n";
+            $client = @stream_socket_accept($server, -1);
+            if (!$client) {
+                $this->markTestIncomplete('testOauth: Failed to receive Trello response.');
+            }
+            $query = fgets($client, 1024);
+
+            // Received a response, let's send back a message
+            $msg = "Please close this browser window and return to the test to continue.";
+            fputs($client, "HTTP/1.1 200 OK\r\n");
+            fputs($client, "Connection: close\r\n");
+            fputs($client, "Content-Type: text/html; charset=UTF-8\r\n");
+            fputs($client, "Content-Length: " . strlen($msg) . "\r\n\r\n");
+            fputs($client, $msg);
+            fclose($client);
+
+            // Wait to continue the test until the browser returns.
+            //readline("Press [Enter] to continue...");
+
+            // Lets parse the query and pull out the oauth stuff
+            if (!preg_match('~GET (.*?) HTTP~', $query, $match)) {
+                $this->markTestIncomplete('testOauth: Could not read response from Trello.');
+            }
+
+            // Parse the query portion of the URL into the GET variable
+            parse_str(parse_url($match[1], PHP_URL_QUERY), $_GET);
+
+            $this->assertTrue(self::$trello->authorize());
+        }
     }
 }
