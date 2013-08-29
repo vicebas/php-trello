@@ -3,7 +3,7 @@
     "type": "library",
     "description": "PHP-based Trello API Wrapper",
     "keywords": ["trello", "api"],
-    "homepage": "https://bitbucket.org/mattzuba/php-trello",
+    "homepage": "http://mattzuba.bitbucket.org/php-trello/",
     "license": "MPL-2.0-no-copyleft-exception",
     "authors": [
         {
