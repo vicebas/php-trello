@@ -355,8 +355,6 @@ class Trello
         $args = array_slice(func_get_args(), 1);
         extract($this->parseRestArgs($args)); /* path, params */
 
-        $url = "{$this->baseUrl}{$path}";
-
         $restData = array();
         if ($this->consumer_key && !$this->shared_secret) {
             $restData['key'] = $this->consumer_key;
@@ -377,49 +375,29 @@ class Trello
         curl_setopt($ch, CURLOPT_USERAGENT, "php-trello/$this->version");
         curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
 
-        // If we're using oauth, account for it
-        if ($this->canOauth()) {
-            $oauth = new OAuthSimple($this->consumer_key, $this->shared_secret);
-            $oauth->setTokensAndSecrets(array(
-                'access_token' => $this->token,
-                'access_secret' => $this->oauth_secret,
-            ));
-        }
-
         switch ($method) {
             case 'GET':
-                if (isset($oauth) && !empty($restData)) {
-                    $oauth->setParameters($restData);
-                } elseif (!empty($restData)) {
-                    $url.= '?' . http_build_query($restData);
-                }
                 break;
             case 'POST':
                 curl_setopt($ch, CURLOPT_POST, true);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $restData);
+                $restData = array();
                 break;
             case 'PUT':
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
                 curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($restData, '', '&'));
+                $restData = array();
                 break;
             case 'DELETE':
             case 'DEL':
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
-                if (isset($oauth) && !empty($restData)) {
-                    $oauth->setParameters($restData);
-                } elseif (!empty($restData)) {
-                    $url.= '?' . http_build_query($restData);
-                }
                 break;
             default:
                 throw new \Exception('Invalid method specified');
                 break;
         }
 
-        if (isset($oauth)) {
-            $request = $oauth->sign(array('path' => $url));
-            $url = $request['signed_url'];
-        }
+        $url = $this->buildRequestUrl($method, $path, $restData);
 
         curl_setopt($ch, CURLOPT_URL, $url);
 
@@ -443,6 +421,36 @@ class Trello
 
         $this->lastError = '';
         return json_decode($responseBody);
+    }
+
+    /**
+     * buildRequestUrl
+     * Parse arguments sent to the rest function.  Might be extended in future for callbacks.
+     *
+     * @param  string $method
+	 * @param  string $path
+	 * @param  array $data
+     * @return string
+     */
+    public function buildRequestUrl($method, $path, $data)
+    {
+        $url = "{$this->baseUrl}{$path}";
+
+        // If we're using oauth, account for it
+        if ($this->canOauth()) {
+            $oauth = new OAuthSimple($this->consumer_key, $this->shared_secret);
+            $oauth->setTokensAndSecrets(array('access_token' => $this->token,'access_secret' => $this->oauth_secret,))
+                  ->setParameters($data);
+            $request = $oauth->sign(array('path' => $url));
+            return $request['signed_url'];
+        } else {
+            // These methods require the data appended to the URL
+            if (in_array($method, array('GET', 'DELETE', 'DEL')) && !empty($data)) {
+                $url .= '?' . http_build_query($data, '', '&');
+            }
+
+            return $url;
+        }
     }
 
     /**
