@@ -380,7 +380,7 @@ class Trello
                 break;
             case 'POST':
                 curl_setopt($ch, CURLOPT_POST, true);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $restData);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($restData, '', '&'));
                 $restData = array();
                 break;
             case 'PUT':
