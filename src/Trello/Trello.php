@@ -374,6 +374,7 @@ class Trello
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_USERAGENT, "php-trello/$this->version");
         curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+        curl_setopt($ch, CURLOPT_SAFE_UPLOAD, true);
 
         switch ($method) {
             case 'GET':
