@@ -145,12 +145,12 @@ class OAuthSimple
      *
      * @param string $path the fully qualified URI (excluding query arguments) (e.g "http://example.org/foo")
      * @return OAuthSimple
-     * @throws OAuthSimpleException
+     * @throws AuthException
      */
     public function setURL($path)
     {
         if (empty($path)) {
-            throw new OAuthSimpleException('No path specified for OAuthSimple.setURL');
+            throw new AuthException('No path specified for OAuthSimple.setURL');
         }
         $this->_path = $path;
 
@@ -174,7 +174,7 @@ class OAuthSimple
      *
      * @param string $action HTTP Action word.
      * @return OAuthSimple
-     * @throws OAuthSimpleException
+     * @throws AuthException
      */
     public function setAction($action)
     {
@@ -183,7 +183,7 @@ class OAuthSimple
         }
         $action = strtoupper($action);
         if (preg_match('/[^A-Z]/', $action)) {
-            throw new OAuthSimpleException('Invalid action specified for OAuthSimple.setAction');
+            throw new AuthException('Invalid action specified for OAuthSimple.setAction');
         }
         $this->_action = $action;
 
@@ -195,7 +195,7 @@ class OAuthSimple
      *
      * @param array $signatures object /hash of the token/signature pairs {api_key:, shared_secret:, oauth_token: oauth_secret:}
      * @return OAuthSimple
-     * @throws OAuthSimpleException
+     * @throws AuthException
      */
     public function signatures(array $signatures)
     {
@@ -218,13 +218,13 @@ class OAuthSimple
             $this->_secrets['oauth_secret'] = $this->_secrets['oauth_token_secret'];
         }
         if (empty($this->_secrets['consumer_key'])) {
-            throw new OAuthSimpleException('Missing required consumer_key in OAuthSimple.signatures');
+            throw new AuthException('Missing required consumer_key in OAuthSimple.signatures');
         }
         if (empty($this->_secrets['shared_secret'])) {
-            throw new OAuthSimpleException('Missing requires shared_secret in OAuthSimple.signatures');
+            throw new AuthException('Missing requires shared_secret in OAuthSimple.signatures');
         }
         if (!empty($this->_secrets['oauth_token']) && empty($this->_secrets['oauth_secret'])) {
-            throw new OAuthSimpleException('Missing oauth_secret for supplied oauth_token in OAuthSimple.signatures');
+            throw new AuthException('Missing oauth_secret for supplied oauth_token in OAuthSimple.signatures');
         }
 
         return $this;
@@ -233,7 +233,7 @@ class OAuthSimple
     /**
      * @param array $signatures
      * @return OAuthSimple
-     * @throws OAuthSimpleException
+     * @throws AuthException
      */
     public function setTokensAndSecrets(array $signatures)
     {
@@ -245,7 +245,7 @@ class OAuthSimple
      *
      * @param string $method Method of signing the transaction (only PLAINTEXT and SHA-MAC1 allowed for now)
      * @return OAuthSimple
-     * @throws OAuthSimpleException
+     * @throws AuthException
      */
     public function setSignatureMethod($method = null)
     {
@@ -257,7 +257,7 @@ class OAuthSimple
                 $this->_parameters['oauth_signature_method'] = $method;
                 break;
             default:
-                throw new OAuthSimpleException("Unknown signing method $method specified for OAuthSimple.setSignatureMethod");
+                throw new AuthException("Unknown signing method $method specified for OAuthSimple.setSignatureMethod");
                 break;
         }
 
@@ -369,7 +369,7 @@ class OAuthSimple
             return '';
         }
         if (is_array($string)) {
-            throw new OAuthSimpleException('Array passed to _oauthEscape');
+            throw new AuthException('Array passed to _oauthEscape');
         }
         $string = urlencode($string);
 
@@ -398,7 +398,7 @@ class OAuthSimple
     private function _getApiKey()
     {
         if (empty($this->_secrets['consumer_key'])) {
-            throw new OAuthSimpleException('No consumer_key set for OAuthSimple');
+            throw new AuthException('No consumer_key set for OAuthSimple');
         }
         $this->_parameters['oauth_consumer_key'] = $this->_secrets['consumer_key'];
 
@@ -411,7 +411,7 @@ class OAuthSimple
             return '';
         }
         if (!isset($this->_secrets['oauth_token'])) {
-            throw new OAuthSimpleException('No access token (oauth_token) set for OAuthSimple.');
+            throw new AuthException('No access token (oauth_token) set for OAuthSimple.');
         }
         $this->_parameters['oauth_token'] = $this->_secrets['oauth_token'];
 
@@ -481,7 +481,7 @@ class OAuthSimple
 
                 return base64_encode(hash_hmac('sha1', $this->sbs, $secretKey, TRUE));
             default:
-                throw new OAuthSimpleException('Unknown signature method for OAuthSimple');
+                throw new AuthException('Unknown signature method for OAuthSimple');
                 break;
         }
     }

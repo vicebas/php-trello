@@ -3,7 +3,7 @@
 namespace Trello\Authorization;
 
 
-class OAuthSimpleException extends \Exception
+class AuthException extends \Exception
 {
 
 }
